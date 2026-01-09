@@ -2,7 +2,18 @@
 
 Backend server for the MoveWell React Native application.
 
-## Setup
+## Quick Deploy to Render
+
+See [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md) for detailed deployment instructions.
+
+Quick steps:
+1. Push your code to GitHub
+2. Create a new Web Service on Render
+3. Set Root Directory to `server`
+4. Add environment variables (MONGODB_URI, JWT_SECRET)
+5. Deploy!
+
+## Local Setup
 
 1. Install dependencies:
 ```bash

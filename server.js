@@ -45,7 +45,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_change_t
 // Make JWT_SECRET available globally
 process.env.JWT_SECRET = JWT_SECRET;
 
-app.listen(PORT, () => {
+// Listen on all network interfaces (required for Render)
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
