@@ -52,6 +52,8 @@ router.post('/', async (req, res) => {
             targetLanguage: target,
           });
         }
+      } else {
+        console.log(`LibreTranslate returned status ${libreResponse.status}, trying fallback...`);
       }
     } catch (libreError) {
       console.log('LibreTranslate failed, trying MyMemory...', libreError.message);
@@ -66,6 +68,10 @@ router.post('/', async (req, res) => {
       const response = await fetch(apiUrl);
       
       if (!response.ok) {
+        if (response.status === 429) {
+          console.log('MyMemory rate limited (429), trying alternative service...');
+          throw new Error('RATE_LIMITED');
+        }
         throw new Error(`MyMemory API returned status ${response.status}`);
       }
       
@@ -86,8 +92,34 @@ router.post('/', async (req, res) => {
         throw new Error('MyMemory API returned unexpected response format');
       }
     } catch (myMemoryError) {
+      // If rate limited, try alternative free service
+      if (myMemoryError.message === 'RATE_LIMITED') {
+        try {
+          // Try Google Translate free API (via translate.googleapis.com)
+          const googleUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${source}&tl=${target}&dt=t&q=${encodeURIComponent(text)}`;
+          
+          const googleResponse = await fetch(googleUrl);
+          if (googleResponse.ok) {
+            const googleData = await googleResponse.json();
+            if (googleData && googleData[0] && googleData[0][0] && googleData[0][0][0]) {
+              const translatedText = googleData[0].map((item) => item[0]).join('').trim();
+              console.log(`Google Translate: "${text}" -> "${translatedText}"`);
+              
+              return res.json({
+                originalText: text,
+                translatedText: translatedText,
+                sourceLanguage: source,
+                targetLanguage: target,
+              });
+            }
+          }
+        } catch (googleError) {
+          console.error('Google Translate also failed:', googleError.message);
+        }
+      }
+      
       console.error('Error calling MyMemory API:', myMemoryError.message);
-      throw new Error(`Both translation services failed. Last error: ${myMemoryError.message}`);
+      throw new Error(`All translation services failed. Last error: ${myMemoryError.message}`);
     }
   } catch (error) {
     console.error('Error translating text:', error);
